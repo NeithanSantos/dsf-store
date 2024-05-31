@@ -1,76 +1,71 @@
 import React from 'react';
-import { useProducts } from '../hooks/useProducts';
+import { useQuery } from 'react-query';
+import axios from 'axios';
 import styled from 'styled-components';
-import Skeleton from 'react-loading-skeleton';
-import 'react-loading-skeleton/dist/skeleton.css';
 
-const ProductListContainer = styled.div`
-  display: flex;
-  flex-wrap: wrap;
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+  photo: string; 
+}
+
+interface ProductListProps {
+  addToCart: (product: Product) => void;
+}
+
+const ProductGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 32px;
-`;
-
-const ProductCard = styled.div`
-  border: 1px solid #ccc;
+  justify-items: center;
   padding: 16px;
-  width: 250px;
-  max-width: 100%;
+`;
+
+const ProductContainer = styled.div`
+  border: 1px solid #0c0c0c;
+  border-radius: 8px;
+  padding: 16px;
+  width: 200px;
   text-align: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 `;
 
-const ErrorMessage = styled.div`
-  color: #FF0000;
-  margin: 16px 0;
+const ProductImage = styled.img`
+  width: 100%;
+  height: auto;
+  object-fit: cover;
 `;
 
-const AddToCartButton = styled.button`
-  background-color: #31ACB9;
-  color: #FFFFFF;
-  padding: 8px;
-  margin: 8px;
+const ButtonToAdd = styled.button`
+  border-radius: 10px  10px;
   border: none;
   cursor: pointer;
-`;
+  background-color: black;
+  color: white; 
+`
 
-const ProductList: React.FC = () => {
-  const { data, error, isLoading } = useProducts();
+const ProductList: React.FC<ProductListProps> = ({ addToCart }) => {
+  const { data, error, isLoading } = useQuery('products', async () => {
+    const response = await axios.get('https://mks-frontend-challenge-04811e8151e6.herokuapp.com/api/v1/products?page=1&rows=8&sortBy=price&orderBy=DESC');
+    return response.data.products;
+  });
 
-  if (isLoading) {
-    return (
-      <ProductListContainer>
-        {Array(6).fill(0).map((_, index) => (
-          <ProductCard key={index}>
-            <Skeleton height={20} />
-            <Skeleton height={20} />
-            <Skeleton height={40} />
-          </ProductCard>
-        ))}
-      </ProductListContainer>
-    );
-  }
-
-  if (error) {
-    return (
-      <ErrorMessage>
-        Error loading products. Please try again later.
-      </ErrorMessage>
-    );
-  }
+  if (isLoading || !data) return <div>Loading...</div>;
+  if (error) return <div>Error loading products</div>;
 
   return (
-    <ProductListContainer>
-      {data.map((product: any) => (
-        <ProductCard key={product.id}>
-          <h2>{product.name}</h2>
-          <p>{product.price}</p>
-          <AddToCartButton>Add to Cart</AddToCartButton>
-        </ProductCard>
+    <ProductGrid>
+      {data.map((product: Product) => (
+        <ProductContainer key={product.id}>
+          <ProductImage src={product.photo} alt={product.name} />
+          <h3>{product.name}</h3>
+          <p>{product.description}</p>
+          <p>${product.price}</p>
+          <ButtonToAdd onClick={() => addToCart(product)}>Add to Cart</ButtonToAdd>
+        </ProductContainer>
       ))}
-    </ProductListContainer>
+    </ProductGrid>
   );
 };
 
